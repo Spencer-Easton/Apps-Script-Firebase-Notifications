@@ -21,7 +21,11 @@ I figured out the the Firebase JWT token generater works on the Apps Script serv
 function sendNotificationToUser(string UID, string message)  
 -UID is the stripped down users email.  
 -ie person@example.com becomes personexamplecom   
--Message can be any string
+-Message can be any string  
+
+### Tracking currently connected users  
+function getOnlineUsers()
+  
   
 ###Note:  
 The polymer files are bieng hosted on a person App Engine project.  You can use it for testing this app, but don't link to it for any other projects. It will be taken down as soon as I figure out the proper CORS settings for firebase hosting.
