@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ccscdn-965.appspot.com/bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/iron-icons/social-icons.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-button/paper-button.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-item/paper-item.html">
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-material/paper-material.html">
+<link href='https://fonts.googleapis.com/css?family=Roboto+Slab' rel='stylesheet' type='text/css'>
+<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-dialog/paper-dialog.html">
+
+
+<style is="custom-style">
+
+.notificationCard{
+  padding-left:5px;
+  
+  min-height:40px;
+  height:auto;
+  margin-bottom:5px;
+  font-size:16px;
+  width:95%
+  
+}
+
+#notificationItems{
+overflow-y: scroll; height:360px;
+}
+
+.bottom_link{
+   position:absolute;                  /* added */
+   bottom:0;                           /* added */
+   left:0;                             /* added */
+}
+
+ paper-dialog.size-position {
+      position: relative;
+      top: 245px;
+      right: 46px;
+    }
+
+
+    paper-dialog.size-position {
+      min-width: 300px;
+      max-width:600px;
+      height: 500px;
+      
+    }
+     
+ 
+   
+   paper-button.colorful {
+      color: #4285f4;
+    }
+
+.red {color:red};
+.white {color:white};
+body{
+  font-family: 'Roboto Slab', serif;
+}
+
+[main]{
+  background-color: #f5f5f5;  
+}
+
+[drawer]{
+  background-color:#ffffff;
+}
+
+.notificationTitle p, .notification p{
+    text-align:center;
+}
+
+#notificationMenu h4{
+text-align:center;
+}
+
+.notificationTitle{
+  width:90%;
+ 
+  height:auto;
+  margin-left:auto;
+  margin-right:auto; 
+  font-size:40px;
+  background-color:white;
+  
+}
+.profileImage{
+  border-radius:50%;
+  height:40px;
+  width:40px;
+  vertical-align:middle;
+  margin-right:5px;
+}
+
+
+</style>
+
+</head>
+<body fullbleed vertical layout unresolved>
+   <paper-drawer-panel id="drawerPanel">
+   <paper-header-panel  drawer>
+   <paper-toolbar>Current Users</paper-toolbar>
+   <span> Status: <span id="myOnlineStatus">Connecting...</span></span>
+    <paper-menu id="onlineUsers"></paper-menu>    
+   </paper-header-panel>
+    <paper-header-panel  main>
+    <paper-toolbar id="mainheader">
+        <paper-icon-button paper-drawer-toggle
+          icon="menu"></paper-icon-button><span flex></span>        
+        <paper-icon-button class="white" id="notificationButton"
+          icon="social:notifications">           
+         </paper-icon-button>
+          
+         <paper-dialog id="notificationMenu" heading="Notifications" class="size-position">
+         <h4 id="notificationMenuHeader">notifications</h4>
+         <div id="notificationItems"> </div>
+         <div id="notaficationFooter" class="bottom_link"><paper-button id="notificationSwitchButton"onclick="viewPreviousNotifications()">previously read</paper-button></div>
+         </paper-dialog>
+           
+          
+      </paper-toolbar>
+      <paper-material class="notificationTitle" elevation="1">
+      <p>App Working Area</p>
+      </paper-material>
+     
+     </paper-header-panel>
+  </paper-drawer-panel>
+</body>
+
+
+
+
+<script>
+var firebaseURL = 'https://gaspush.firebaseio.com';
+var userToken;
+var clientId;
+var myStatus;
+var onlineClients;
+
+
+var notificationMenuHeader;
+var notificationMenu;
+var notificationMenuItems;
+var notificationMenuButton;
+var notificationSwitchButton;
+
+
+asyncLoad("https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js","js",
+ asyncLoad("https://cdn.firebase.com/js/client/2.2.7/firebase.js", "js", requestToken));
+
+
+    
+
+
+function jquerySetup(){
+   myStatus = $("#myOnlineStatus");
+   onlineClients = $("#onlineUsers");
+   notificationMenu = $('#notificationMenu');
+   notificationMenuButton = $('#notificationButton');
+   notificationMenuHeader = $('#notificationMenuHeader')
+   notificationMenuItems = $('#notificationItems');
+   notificationSwitchButton = $('#notificationSwitchButton');
+   notificationMenuButton.click(function(){
+          var dialog = document.getElementById('notificationMenu');
+          dialog.open();
+    });
+    notificationMenu[0].addEventListener('iron-overlay-closed',function(){
+   
+      var user = userToken.auth.uid;
+      notificationMenuHeader.text("notifications");
+      notificationSwitchButton.show();
+      setupNotifications(user);
+      
+    });
+      
+    
+}
+
+
+function watchOnlineStatus(user){
+
+jquerySetup();
+
+
+var myConnectionsRef = new Firebase(firebaseURL+'/users/'+user+'/connections');
+var onlineUsers = new Firebase(firebaseURL+'/online');
+var lastOnlineRef = new Firebase(firebaseURL+'/users/'+user+'/lastOnline');
+var connectedRef = new Firebase(firebaseURL+'/.info/connected');
+
+
+
+
+
+
+connectedRef.on('value', function(snap) {
+  if (snap.val() === true) {
+    var con = myConnectionsRef.push(true);    
+    con.onDisconnect().remove();
+    
+    var pubCon = onlineUsers.push(userToken.auth);
+    
+    
+    pubCon.onDisconnect().remove();
+    lastOnlineRef.onDisconnect().set(Firebase.ServerValue.TIMESTAMP);    
+    myStatus.text("Connected");
+    
+    setupDataWatching();
+    setupNotifications(user);
+    
+    
+  } else{
+    myStatus.text("Disconnected");
+  }
+});
+}
+
+
+function viewPreviousNotifications(){
+notificationMenuHeader.text("previous notifications");
+notificationSwitchButton.hide();
+var user = userToken.auth.uid;
+var myNotifications = new Firebase(firebaseURL+'/users/'+user+'/notifications');
+myNotifications.once('value',function(s){
+  notificationMenuItems.empty();
+  for(var i in s.val()){
+    if(s.val()[i].status == "viewed"){
+       notificationMenuItems.append('<paper-material class="notificationCard" elevation="2" >'+s.val()[i].notification+'</paper-material>');  
+      }
+   }
+ });
+}
+
+
+
+
+function setupNotifications(user){
+
+var myNotifications = new Firebase(firebaseURL+'/users/'+user+'/notifications');
+myNotifications.on('value',function(s){
+  notificationMenuItems.empty();
+  for(var i in s.val()){
+    if(s.val()[i].status == "unviewed"){
+     if( notificationMenuButton.hasClass("white")){
+        notificationMenuButton.removeClass("white").addClass("red");}
+           notificationMenuItems.append('<paper-material class="notificationCard" elevation="2" ><paper-icon-button onclick="ackNotification(\''+i+'\');" icon="check"></paper-icon-button>'+s.val()[i].notification+'</paper-material>');  
+          
+         
+         
+    }
+  }
+  
+});
+
+}
+
+function ackNotification(notificationId){
+ var user = userToken.auth.uid;
+ 
+ var thisNotification = new Firebase(firebaseURL+'/users/'+user+'/notifications/'+notificationId);
+ var res = thisNotification.update({"status":"viewed"});
+ if(notificationMenuItems.children().length < 1){
+    notificationMenuButton.removeClass("red").addClass("white");
+ }
+ 
+}
+
+function setupDataWatching(){
+  var onlineUsers = new Firebase(firebaseURL+'/online');
+  var onlineSnapshot;
+ 
+  
+   onlineUsers.on('value',function(dataSnapshot){
+    var uniqueUsers = {};
+    onlineClients.empty();
+    onlineSnapshot = dataSnapshot.val();
+    
+    
+    
+    for(var i in onlineSnapshot){
+       if(!(onlineSnapshot[i].displayName in uniqueUsers)){
+         uniqueUsers[onlineSnapshot[i].displayName] = {};
+         uniqueUsers[onlineSnapshot[i].displayName].uid = onlineSnapshot[i].uid;
+         uniqueUsers[onlineSnapshot[i].displayName].image = onlineSnapshot[i].image;
+       }
+      }
+     
+      
+     for(user in uniqueUsers)
+       onlineClients.append('<paper-item  data-uid="'+uniqueUsers[user].uid+'" role="listitem"><paper-item-body><div><img class="profileImage" src="'+
+                                           uniqueUsers[user].image+'"><span>'+
+                                           user+'</span></div></paper-item-body></paper-item>');
+                                           });
+    
+ }
+   
+ 
+
+
+function requestToken(){google.script.run.withSuccessHandler(AuthClient).makeToken()}
+
+
+function AuthClient(t){
+var ref = new Firebase(firebaseURL);
+ref.authWithCustomToken(t, function(error, authData) {
+  if (error) {
+    console.log("Login Failed!", error);
+  } else {
+    console.log("Login Succeeded!", authData);
+    userToken = authData;
+    google.script.run
+    .withSuccessHandler(watchOnlineStatus)    
+    .registerClient(authData.auth)
+    }
+});
+}
+
+
+
+
+
+
+function asyncLoad(filename, filetype, callback){
+    if (filetype=="js"){ //if filename is a external JavaScript file
+        var fileref=document.createElement('script')
+        fileref.setAttribute("type","text/javascript")
+        fileref.setAttribute("src", filename)
+    }
+    else if (filetype=="css"){ //if filename is an external CSS file
+        var fileref=document.createElement("link")
+        fileref.setAttribute("rel", "stylesheet")
+        fileref.setAttribute("type", "text/css")
+        fileref.setAttribute("href", filename)
+    }
+    if(typeof fileref!="undefined"){
+         document.getElementsByTagName("head")[0].appendChild(fileref);
+         
+         if(callback){callback();}
+        }
+}
+</script>
+
+
+
+
+<html>
