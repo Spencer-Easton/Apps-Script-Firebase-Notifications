@@ -22,6 +22,8 @@ function sendNotificationToUser(string UID, string message)
 -UID is the stripped down users email.  
 -ie person@example.com becomes personexamplecom   
 -Message can be any string  
+note: the user does not have to be currently logged into the app for you to send a notification. You can send it and the user will get it the next time they login.
+
 
 ### Tracking currently connected users  
 function getOnlineUsers()
