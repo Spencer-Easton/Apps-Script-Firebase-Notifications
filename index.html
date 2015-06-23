@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="https://ccscdn-965.appspot.com/bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-header-panel/paper-header-panel.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-toolbar/paper-toolbar.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/iron-icons/social-icons.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-button/paper-button.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-drawer-panel/paper-drawer-panel.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-menu/paper-menu.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-item/paper-item.html">
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-material/paper-material.html">
+<script src="https://gaspush.firebaseapp.com/bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/iron-icons/social-icons.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-button/paper-button.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-item/paper-item.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-material/paper-material.html">
 <link href='https://fonts.googleapis.com/css?family=Roboto+Slab' rel='stylesheet' type='text/css'>
-<link rel="import" href="https://ccscdn-965.appspot.com/bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="https://gaspush.firebaseapp.com/bower_components/paper-dialog/paper-dialog.html">
 
 
 <style is="custom-style">
@@ -155,9 +155,51 @@ var notificationSwitchButton;
 asyncLoad("https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js","js",
  asyncLoad("https://cdn.firebase.com/js/client/2.2.7/firebase.js", "js", requestToken));
 
+function requestToken(){google.script.run.withSuccessHandler(AuthClient).makeToken()}
 
+function AuthClient(t){
+var ref = new Firebase(firebaseURL);
+ref.authWithCustomToken(t, function(error, authData) {
+  if (error) {
+    console.log("Login Failed!", error);
+  } else {
+    console.log("Login Succeeded!", authData);
+    userToken = authData;
+    google.script.run
+    .withSuccessHandler(watchOnlineStatus)    
+    .registerClient(authData.auth)
+    }
+});
+}
+
+function watchOnlineStatus(user){
+
+jquerySetup();
+
+var myConnectionsRef = new Firebase(firebaseURL+'/users/'+user+'/connections');
+var onlineUsers = new Firebase(firebaseURL+'/online');
+var lastOnlineRef = new Firebase(firebaseURL+'/users/'+user+'/lastOnline');
+var connectedRef = new Firebase(firebaseURL+'/.info/connected');
+
+connectedRef.on('value', function(snap) {
+  if (snap.val() === true) {
+    var con = myConnectionsRef.push(true);    
+    con.onDisconnect().remove();
     
-
+    var pubCon = onlineUsers.push(userToken.auth);
+    
+    
+    pubCon.onDisconnect().remove();
+    lastOnlineRef.onDisconnect().set(Firebase.ServerValue.TIMESTAMP);    
+    myStatus.text("Connected");
+    
+    setupDataWatching();
+    setupNotifications(user);
+  } else{
+    myStatus.text("Disconnected");
+  }
+});
+}
 
 function jquerySetup(){
    myStatus = $("#myOnlineStatus");
@@ -179,46 +221,47 @@ function jquerySetup(){
       setupNotifications(user);
       
     });
-      
-    
 }
 
+function setupDataWatching(){
+  var onlineUsers = new Firebase(firebaseURL+'/online');
+  var onlineSnapshot;
 
-function watchOnlineStatus(user){
-
-jquerySetup();
-
-
-var myConnectionsRef = new Firebase(firebaseURL+'/users/'+user+'/connections');
-var onlineUsers = new Firebase(firebaseURL+'/online');
-var lastOnlineRef = new Firebase(firebaseURL+'/users/'+user+'/lastOnline');
-var connectedRef = new Firebase(firebaseURL+'/.info/connected');
-
-
-
-
-
-
-connectedRef.on('value', function(snap) {
-  if (snap.val() === true) {
-    var con = myConnectionsRef.push(true);    
-    con.onDisconnect().remove();
+  onlineUsers.on('value',function(dataSnapshot){
+    var uniqueUsers = {};
+    onlineClients.empty();
+    onlineSnapshot = dataSnapshot.val();
+     
+    for(var i in onlineSnapshot){
+       if(!(onlineSnapshot[i].displayName in uniqueUsers)){
+         uniqueUsers[onlineSnapshot[i].displayName] = {};
+         uniqueUsers[onlineSnapshot[i].displayName].uid = onlineSnapshot[i].uid;
+         uniqueUsers[onlineSnapshot[i].displayName].image = onlineSnapshot[i].image;
+       }
+      }
+     
+      
+     for(user in uniqueUsers)
+       onlineClients.append('<paper-item  data-uid="'+uniqueUsers[user].uid+'" role="listitem"><paper-item-body><div><img class="profileImage" src="'+
+                                           uniqueUsers[user].image+'"><span>'+
+                                           user+'</span></div></paper-item-body></paper-item>');
+                                           });
     
-    var pubCon = onlineUsers.push(userToken.auth);
-    
-    
-    pubCon.onDisconnect().remove();
-    lastOnlineRef.onDisconnect().set(Firebase.ServerValue.TIMESTAMP);    
-    myStatus.text("Connected");
-    
-    setupDataWatching();
-    setupNotifications(user);
-    
-    
-  } else{
-    myStatus.text("Disconnected");
-  }
-});
+ }
+
+
+function setupNotifications(user){
+var myNotifications = new Firebase(firebaseURL+'/users/'+user+'/notifications');
+myNotifications.on('value',function(s){
+  notificationMenuItems.empty();
+  for(var i in s.val()){
+    if(s.val()[i].status == "unviewed"){
+     if( notificationMenuButton.hasClass("white")){
+        notificationMenuButton.removeClass("white").addClass("red");}
+           notificationMenuItems.append('<paper-material class="notificationCard" elevation="2" ><paper-icon-button onclick="ackNotification(\''+i+'\');" icon="check"></paper-icon-button>'+s.val()[i].notification+'</paper-material>');  
+     }
+   }
+  });
 }
 
 
@@ -238,28 +281,6 @@ myNotifications.once('value',function(s){
 }
 
 
-
-
-function setupNotifications(user){
-
-var myNotifications = new Firebase(firebaseURL+'/users/'+user+'/notifications');
-myNotifications.on('value',function(s){
-  notificationMenuItems.empty();
-  for(var i in s.val()){
-    if(s.val()[i].status == "unviewed"){
-     if( notificationMenuButton.hasClass("white")){
-        notificationMenuButton.removeClass("white").addClass("red");}
-           notificationMenuItems.append('<paper-material class="notificationCard" elevation="2" ><paper-icon-button onclick="ackNotification(\''+i+'\');" icon="check"></paper-icon-button>'+s.val()[i].notification+'</paper-material>');  
-          
-         
-         
-    }
-  }
-  
-});
-
-}
-
 function ackNotification(notificationId){
  var user = userToken.auth.uid;
  
@@ -270,61 +291,6 @@ function ackNotification(notificationId){
  }
  
 }
-
-function setupDataWatching(){
-  var onlineUsers = new Firebase(firebaseURL+'/online');
-  var onlineSnapshot;
- 
-  
-   onlineUsers.on('value',function(dataSnapshot){
-    var uniqueUsers = {};
-    onlineClients.empty();
-    onlineSnapshot = dataSnapshot.val();
-    
-    
-    
-    for(var i in onlineSnapshot){
-       if(!(onlineSnapshot[i].displayName in uniqueUsers)){
-         uniqueUsers[onlineSnapshot[i].displayName] = {};
-         uniqueUsers[onlineSnapshot[i].displayName].uid = onlineSnapshot[i].uid;
-         uniqueUsers[onlineSnapshot[i].displayName].image = onlineSnapshot[i].image;
-       }
-      }
-     
-      
-     for(user in uniqueUsers)
-       onlineClients.append('<paper-item  data-uid="'+uniqueUsers[user].uid+'" role="listitem"><paper-item-body><div><img class="profileImage" src="'+
-                                           uniqueUsers[user].image+'"><span>'+
-                                           user+'</span></div></paper-item-body></paper-item>');
-                                           });
-    
- }
-   
- 
-
-
-function requestToken(){google.script.run.withSuccessHandler(AuthClient).makeToken()}
-
-
-function AuthClient(t){
-var ref = new Firebase(firebaseURL);
-ref.authWithCustomToken(t, function(error, authData) {
-  if (error) {
-    console.log("Login Failed!", error);
-  } else {
-    console.log("Login Succeeded!", authData);
-    userToken = authData;
-    google.script.run
-    .withSuccessHandler(watchOnlineStatus)    
-    .registerClient(authData.auth)
-    }
-});
-}
-
-
-
-
-
 
 function asyncLoad(filename, filetype, callback){
     if (filetype=="js"){ //if filename is a external JavaScript file
@@ -345,8 +311,4 @@ function asyncLoad(filename, filetype, callback){
         }
 }
 </script>
-
-
-
-
 <html>
