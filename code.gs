@@ -20,9 +20,13 @@ function sendNotificationToUser(UID,message){
 
 
 function registerClient(auth){
-  
   var fb = FirebaseApp.getDatabaseByUrl(firebaseURL, PropertiesService.getScriptProperties().getProperty("secret"));
-  fb.setData("/users/"+UID, auth);
+  var curUser = fb.getData("/users/"+UID);
+  if(curUser){
+    fb.updateData("/users/"+UID, auth);
+  }else{
+    fb.setData("/users/"+UID, auth);
+  }
   return UID;
 }
   
