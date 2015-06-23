@@ -4,7 +4,8 @@ A demo project showing how to use firebase as a backend for push notifications i
 ###Push notifications  
 Pushing to the client has always been an issue for Apps Script webapp projects. Becuase of the redirecting required by the platform serviceworkers cannot be used for Apps Script projects. This means that the new Web Push API will not work.  
 Luckly Romain Vialard posted a firebase library on the Apps Script community page.  It got me looking into firebase and lead me to this project.  Firebase is blazing fast, simple to implament, and just works.  
-I figured out the the Firebase JWT token generater works on the Apps Script server side without modification. This allows you to authenticate the user to firebase completly transparently using a custom authentication flow. This makes for a completly seemless experiance to the users.
+I figured out the the Firebase JWT token generater works on the Apps Script server side without modification. This allows you to authenticate the user to firebase completly transparently using a custom authentication flow. This makes for a completly seemless experiance to the users.  
+Mr. Vialard has since written a very tesrse method of generating tokens and incorperated it into his FirebaseApp library.  You can get access to it by running the Library in developer mode. Once the libarary reached version 14 or greater you should be able to move it out of Developer mode.
 
 
 ###Setup:  
@@ -27,7 +28,3 @@ note: the user does not have to be currently logged into the app for you to send
 
 ### Tracking currently connected users  
 function getOnlineUsers()
-  
-  
-###Note:  
-The polymer files are bieng hosted on a person App Engine project.  You can use it for testing this app, but don't link to it for any other projects. It will be taken down as soon as I figure out the proper CORS settings for firebase hosting.
