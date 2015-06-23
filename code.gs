@@ -22,9 +22,7 @@ function sendNotificationToUser(UID,message){
 function registerClient(auth){
   
   var fb = FirebaseApp.getDatabaseByUrl(firebaseURL, PropertiesService.getScriptProperties().getProperty("secret"));
-  var clientId =  fb.getData("/users/"+UID);  
-  if(!clientId){fb.pushData("/users/"+UID, auth)}
-  else{fb. updateData("/users/"+UID, auth)}
+  fb.setData("/users/"+UID, auth);
   return UID;
 }
   
@@ -33,13 +31,13 @@ function makeToken(){
   if(!curUser.displayName){
     curUser.displayName = curUser.emails[0].value;
   }
-  var tokenData = {"uid": UID,
-                   "image": curUser.image.url,
+  var tokenData = {"image": curUser.image.url,
                    "displayName": curUser.displayName
                    };
   
-  var tokenGenerator = new FirebaseTokenGenerator(PropertiesService.getScriptProperties().getProperty("secret"));
-  var token = tokenGenerator.createToken(tokenData);
+  
+  var tokenGenerator = new FirebaseApp.getDatabaseByUrl(firebaseURL, PropertiesService.getScriptProperties().getProperty("secret"));
+  var token = tokenGenerator.createAuthToken(Session.getActiveUser().getEmail(), tokenData);
   return token;
 }
 
@@ -60,5 +58,7 @@ function getOnlineUsersV1(){
 function getOnlineUsers(){
    var fb = FirebaseApp.getDatabaseByUrl(firebaseURL, PropertiesService.getScriptProperties().getProperty("secret"));   
   var res = fb.getData("/online");
+  Logger.log(res)
   return res;
 }
+
