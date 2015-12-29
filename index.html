@@ -121,9 +121,10 @@ text-align:center;
          <paper-dialog id="notificationMenu" heading="Notifications" class="size-position">
          <h4 id="notificationMenuHeader">notifications</h4>
          <div id="notificationItems"> </div>
-         <div id="notaficationFooter" class="bottom_link"><paper-button id="notificationSwitchButton"onclick="viewPreviousNotifications()">previously read</paper-button></div>
+         <div id="notaficationFooter" class="bottom_link">
+           <paper-button id="notificationSwitchButton" onclick="viewPreviousNotifications()">previously read</paper-button>
+         </div>
          </paper-dialog>
-           
           
       </paper-toolbar>
       <paper-material class="notificationTitle" elevation="1">
@@ -135,15 +136,12 @@ text-align:center;
 </body>
 
 
-
-
 <script>
 var firebaseURL = 'https://gaspush.firebaseio.com';
 var userToken;
 var clientId;
 var myStatus;
 var onlineClients;
-
 
 var notificationMenuHeader;
 var notificationMenu;
